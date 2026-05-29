@@ -209,7 +209,7 @@ def deger_tier(deger: float) -> tuple[str, int]:
         return ("📋 Sıradan", 0x95a5a6)
 
 async def deger_guncelle(ctx, m, miktar, sebep, islem):
-    izinli_roller = [DEGER_YETKILISI_ROL_ID, BASKAN_ROL_ID, YETKILI_1_ID]
+    izinli_roller = [DEGER_YETKILISI_ROL_ID, YETKILI_1_ID]
     sahip_mi = (
         ctx.author.id == OWNER_ID or
         (isinstance(ctx.author, discord.Member) and
