@@ -664,6 +664,79 @@ async def kayitsiz_ver(ctx, m: discord.Member):
     except discord.Forbidden:
         await ctx.send("❌ **Hata:** Botun yetkisi bu üyeyi düzenlemeye yetmiyor!")
 
+# --- EKONOMİ ---
+@bot.command(name='para')
+async def para_goster(ctx, uye: discord.Member = None):
+    uye = uye or ctx.author
+    data, kullanici = get_user_para_data(uye.id)
+    toplam = kullanici["cash"] + kullanici["bank"]
+    embed = discord.Embed(title="💰 Cüzdan Bilgileri", color=0xf1c40f)
+    embed.set_author(name=uye.display_name, icon_url=uye.display_avatar.url)
+    embed.add_field(name="💵 Nakit", value=f"**{kullanici['cash']:,}₺**", inline=True)
+    embed.add_field(name="🏦 Banka", value=f"**{kullanici['bank']:,}₺**", inline=True)
+    embed.add_field(name="📊 Toplam", value=f"**{toplam:,}₺**", inline=True)
+    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi Sistemi")
+    await ctx.send(embed=embed)
+
+@bot.command(name='deposit', aliases=["yatır"])
+async def deposit(ctx, miktar: int):
+    if miktar <= 0:
+        return await ctx.send("❌ Geçersiz miktar!", delete_after=5)
+    data, kullanici = get_user_para_data(ctx.author.id)
+    if kullanici["cash"] < miktar:
+        return await ctx.send(f"❌ Yeterli nakit yok! Nakitin: **{kullanici['cash']:,}₺**", delete_after=5)
+    kullanici["cash"] -= miktar
+    kullanici["bank"] += miktar
+    veri_kaydet(PARA_DOSYA, data)
+    embed = discord.Embed(title="🏦 Para Yatırıldı", color=0x2ecc71,
+        description=f"**{miktar:,}₺** bankana yatırıldı.\n\n💵 Nakit: **{kullanici['cash']:,}₺**\n🏦 Banka: **{kullanici['bank']:,}₺**")
+    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi Sistemi")
+    await ctx.send(embed=embed)
+
+@bot.command(name='withdraw', aliases=["çek"])
+async def withdraw(ctx, miktar: int):
+    if miktar <= 0:
+        return await ctx.send("❌ Geçersiz miktar!", delete_after=5)
+    data, kullanici = get_user_para_data(ctx.author.id)
+    if kullanici["bank"] < miktar:
+        return await ctx.send(f"❌ Bankanda yeterli para yok! Banka: **{kullanici['bank']:,}₺**", delete_after=5)
+    kullanici["bank"] -= miktar
+    kullanici["cash"] += miktar
+    veri_kaydet(PARA_DOSYA, data)
+    embed = discord.Embed(title="💵 Para Çekildi", color=0x3498db,
+        description=f"**{miktar:,}₺** bankandan çekildi.\n\n💵 Nakit: **{kullanici['cash']:,}₺**\n🏦 Banka: **{kullanici['bank']:,}₺**")
+    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi Sistemi")
+    await ctx.send(embed=embed)
+
+@bot.command(name='pay', aliases=["ver", "gönder"])
+async def pay(ctx, alici: discord.Member, miktar: int):
+    if miktar <= 0:
+        return await ctx.send("❌ Geçersiz miktar!", delete_after=5)
+    if alici == ctx.author:
+        return await ctx.send("❌ Kendine para gönderemezsin!", delete_after=5)
+    data, gonderen = get_user_para_data(ctx.author.id)
+    if gonderen["cash"] < miktar:
+        return await ctx.send(f"❌ Yeterli nakit yok! Nakitin: **{gonderen['cash']:,}₺**", delete_after=5)
+    _, alan = get_user_para_data(alici.id)
+    gonderen["cash"] -= miktar
+    alan["cash"] += miktar
+    veri_kaydet(PARA_DOSYA, data)
+    embed = discord.Embed(title="💸 Para Transferi", color=0x9b59b6,
+        description=f"{ctx.author.mention} → {alici.mention}\n\n**{miktar:,}₺** başarıyla gönderildi!")
+    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi Sistemi")
+    await ctx.send(embed=embed)
+
+@bot.command(name='para-ver')
+@commands.has_permissions(administrator=True)
+async def para_ver_admin(ctx, uye: discord.Member, miktar: int):
+    data, kullanici = get_user_para_data(uye.id)
+    kullanici["cash"] += miktar
+    veri_kaydet(PARA_DOSYA, data)
+    embed = discord.Embed(title="✅ Para Verildi", color=0x2ecc71,
+        description=f"{uye.mention} hesabına **{miktar:,}₺** eklendi.\n\n💵 Yeni nakit: **{kullanici['cash']:,}₺**")
+    embed.set_footer(text=f"Yetkili: {ctx.author.display_name}")
+    await ctx.send(embed=embed)
+
 # --- GELİŞİM ---
 @bot.command(name='ant')
 @commands.cooldown(1, 3600, commands.BucketType.user)    
