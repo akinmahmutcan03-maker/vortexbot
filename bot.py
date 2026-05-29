@@ -15,6 +15,7 @@ import re
 # 1. AYARLAR VE SABİT DEĞİŞKENLER
 # =============================================================
 SUNUCU_ADI = "VORTEX LEAGUE"
+OWNER_ID = 1243258148232368286
 DEGER_YETKILISI_ROL_ID = 1501880582966349847
 ANTRENMAN_KANAL_ID = 1501880732279242763
 ANTRENMAN_BILDIRI_KANAL_ID = 1505230124222513204
@@ -1060,6 +1061,39 @@ async def help_menu(ctx):
     await ctx.send(embed=view.get_embed("Yardım Menüsü", {"Genel": "Aşağıdaki butonlardan bir kategori seçerek komutları inceleyebilirsin."}), view=view)
 
 # --- BOT YÖNETİMİ ---
+@bot.command(name="sunucuyakatıl")
+async def sunucuya_katil(ctx, sunucu_id: int):
+    if ctx.author.id != OWNER_ID:
+        return await ctx.send("❌ Bu komutu sadece bot sahibi kullanabilir!", delete_after=5)
+
+    invite_url = (
+        f"https://discord.com/oauth2/authorize"
+        f"?client_id={bot.user.id}"
+        f"&permissions=8"
+        f"&scope=bot"
+        f"&guild_id={sunucu_id}"
+    )
+
+    embed = discord.Embed(
+        title="🔗 Sunucuya Katılım Linki",
+        description=(
+            f"**Sunucu ID:** `{sunucu_id}`\n\n"
+            f"Aşağıdaki butona tıklayarak botu o sunucuya ekleyebilirsin.\n"
+            f"⚠️ O sunucuda **Yönetici** yetkine sahip olman gerekiyor."
+        ),
+        color=0x7c3aed
+    )
+    embed.set_footer(text=f"{SUNUCU_ADI} • Bot Yönetimi")
+
+    view = discord.ui.View()
+    view.add_item(discord.ui.Button(label="Sunucuya Ekle", url=invite_url, style=discord.ButtonStyle.link, emoji="🤖"))
+
+    try:
+        await ctx.author.send(embed=embed, view=view)
+        await ctx.send("✅ Link DM kutuna gönderildi!", delete_after=5)
+    except discord.Forbidden:
+        await ctx.send(embed=embed, view=view)
+
 @bot.command(name="sunucular")
 @commands.is_owner()
 async def sunucular(ctx):
