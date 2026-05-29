@@ -207,8 +207,8 @@ def parse_deger(deger_str):
     return float(deger_str.upper().replace('M', '').replace('€', '').replace(',', '.').strip())
 
 def deger_bar(deger: float) -> str:
-    """0–200M aralığında görsel bir ilerleme çubuğu oluşturur."""
-    filled = min(int(deger / 10), 20)
+    """0–250M aralığında görsel bir ilerleme çubuğu oluşturur."""
+    filled = min(int(deger * 20 / 250), 20)
     empty = 20 - filled
     return "█" * filled + "░" * empty
 
@@ -312,7 +312,7 @@ async def deger_guncelle(ctx, m, miktar, sebep, islem):
         )
 
         embed.add_field(
-            name=f"📊 Değer Göstergesi (0–200M€)",
+            name=f"📊 Değer Göstergesi (0–250M€)",
             value=f"`{bar}` **{yeni:g}M€**",
             inline=False
         )
@@ -409,7 +409,7 @@ async def en_degerli_listesi(ctx):
     embed.add_field(name="💸 Toplam Piyasa", value=f"**{toplam_deger:g}M€**", inline=True)
     embed.add_field(
         name="📈 Piyasa Durumu",
-        value=f"`{deger_bar(min(en_yuksek, 200))}` {en_yuksek:g}M€",
+        value=f"`{deger_bar(min(en_yuksek, 250))}` {en_yuksek:g}M€",
         inline=False
     )
 
