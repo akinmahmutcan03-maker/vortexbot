@@ -47,6 +47,7 @@ ROLLER = {
 
 TAKIM_LOGOLARI = {
     "Paris": "https://i.imgur.com/y4N2yJp.png",
+    "PSG": "https://i.imgur.com/y4N2yJp.png",
     "Barcelona": "https://i.imgur.com/w6TqTzL.png",
     "Real Madrid": "https://i.imgur.com/gJ6hL6x.png",
     "Manchester City": "https://i.imgur.com/qL3t3S4.png",
@@ -54,6 +55,24 @@ TAKIM_LOGOLARI = {
     "Galatasaray": "https://i.imgur.com/jMzNz3a.png",
     "Fenerbahçe": "https://i.imgur.com/z4f1YfN.png",
     "Arsenal": "https://i.imgur.com/P4aGzS6.png",
+    "Bayern": "https://i.imgur.com/3f3f3f3.png",
+    "Bayern Münih": "https://i.imgur.com/3f3f3f3.png",
+    "Beşiktaş": "https://i.imgur.com/3f3f3f3.png",
+}
+
+TAKIM_RENKLERI = {
+    "Barcelona": 0xa50044,
+    "Real Madrid": 0xffffff,
+    "PSG": 0x003370,
+    "Paris": 0x003370,
+    "Dortmund": 0xfde100,
+    "Arsenal": 0xef0107,
+    "Manchester City": 0x6cabdd,
+    "Galatasaray": 0xd4031c,
+    "Fenerbahçe": 0xffee00,
+    "Beşiktaş": 0x000000,
+    "Bayern": 0xdc052d,
+    "Bayern Münih": 0xdc052d,
 }
 
 PARA_DOSYA = "para.json"
@@ -394,6 +413,101 @@ async def en_degerli_listesi(ctx):
         inline=False
     )
 
+    embed.set_footer(text=f"Sorgulayan: {ctx.author.display_name}  •  {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    await ctx.send(embed=embed)
+
+def oyuncu_listesi_olustur(guild):
+    oyuncular = []
+    for uye in guild.members:
+        if uye.bot or len(parcalar := uye.display_name.split(" | ")) < 4:
+            continue
+        try:
+            deger = float(parcalar[3].upper().replace("M", "").replace("€", "").replace(",", ".").strip())
+            oyuncular.append({
+                "uye": uye,
+                "isim": parcalar[0].strip(),
+                "mevki": parcalar[1].strip(),
+                "takim": parcalar[2].strip(),
+                "deger": deger
+            })
+        except:
+            continue
+    return oyuncular
+
+@bot.command(name="endeğerliler", aliases=["topoyuncular"])
+async def en_degerli_listesi2(ctx):
+    oyuncular = oyuncu_listesi_olustur(ctx.guild)
+    if not oyuncular:
+        return await ctx.send(embed=discord.Embed(title="❌ Oyuncu Bulunamadı", description="Değer bilgisi bulunan oyuncu yok.", color=0xe74c3c))
+
+    oyuncular.sort(key=lambda x: x["deger"], reverse=True)
+    toplam_deger = sum(o["deger"] for o in oyuncular)
+    ortalama = round(toplam_deger / len(oyuncular), 1)
+    en_yuksek = oyuncular[0]["deger"]
+
+    siralama_emojiler = {1: "🥇", 2: "🥈", 3: "🥉"}
+    yazi = ""
+    for i, oyuncu in enumerate(oyuncular[:10], start=1):
+        sira = siralama_emojiler.get(i, f"`#{i}`")
+        tier_label, _ = deger_tier(oyuncu["deger"])
+        bar = "█" * min(int(oyuncu["deger"] / 10), 10) + "░" * (10 - min(int(oyuncu["deger"] / 10), 10))
+        yazi += (
+            f"{sira} **{oyuncu['isim']}**\n"
+            f"┣ ⚽ `{oyuncu['mevki']}` • 🏟️ `{oyuncu['takim']}`\n"
+            f"┣ 💰 **{oyuncu['deger']:g}M€** {tier_label}\n"
+            f"┗ `{bar}`\n\n"
+        )
+
+    embed = discord.Embed(title="👑 EN DEĞERLİ OYUNCULAR", description=yazi, color=0xffd700)
+    if ctx.guild.icon:
+        embed.set_author(name=f"{SUNUCU_ADI} | Piyasa Sıralaması", icon_url=ctx.guild.icon.url)
+    embed.add_field(name="👥 Toplam Oyuncu", value=f"**{len(oyuncular)}**", inline=True)
+    embed.add_field(name="📊 Lig Ortalaması", value=f"**{ortalama}M€**", inline=True)
+    embed.add_field(name="💸 Toplam Piyasa", value=f"**{toplam_deger:g}M€**", inline=True)
+    embed.set_footer(text=f"Sorgulayan: {ctx.author.display_name}  •  {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    await ctx.send(embed=embed)
+
+@bot.command(name="takımdeğer", aliases=["takimsiralama", "takımsıralama", "takimdeğer"])
+async def takim_deger_sirala(ctx):
+    oyuncular = oyuncu_listesi_olustur(ctx.guild)
+    if not oyuncular:
+        return await ctx.send(embed=discord.Embed(title="❌ Oyuncu Bulunamadı", description="Değer bilgisi bulunan oyuncu yok.", color=0xe74c3c))
+
+    takimlar = {}
+    for o in oyuncular:
+        t = o["takim"]
+        if t not in takimlar:
+            takimlar[t] = {"toplam": 0, "oyuncular": [], "en_degerli": 0}
+        takimlar[t]["toplam"] += o["deger"]
+        takimlar[t]["oyuncular"].append(o)
+        if o["deger"] > takimlar[t]["en_degerli"]:
+            takimlar[t]["en_degerli"] = o["deger"]
+            takimlar[t]["en_degerli_isim"] = o["isim"]
+
+    siralanmis = sorted(takimlar.items(), key=lambda x: x[1]["toplam"], reverse=True)
+    toplam_piyasa = sum(t["toplam"] for _, t in siralanmis)
+
+    siralama_emojiler = {1: "🥇", 2: "🥈", 3: "🥉"}
+    yazi = ""
+    for i, (takim_adi, bilgi) in enumerate(siralanmis, start=1):
+        sira = siralama_emojiler.get(i, f"`#{i}`")
+        oyuncu_sayisi = len(bilgi["oyuncular"])
+        ortalama = round(bilgi["toplam"] / oyuncu_sayisi, 1)
+        bar = "█" * min(int(bilgi["toplam"] / 50), 10) + "░" * (10 - min(int(bilgi["toplam"] / 50), 10))
+        yulduz = bilgi.get("en_degerli_isim", "?")
+        yazi += (
+            f"{sira} **{takim_adi}**\n"
+            f"┣ 💰 Toplam: **{bilgi['toplam']:g}M€** • Ort: **{ortalama}M€**\n"
+            f"┣ 👥 {oyuncu_sayisi} oyuncu • ⭐ {yulduz}\n"
+            f"┗ `{bar}`\n\n"
+        )
+
+    embed = discord.Embed(title="🏆 TAKIM DEĞER SIRALAMASI", description=yazi, color=0x7c3aed)
+    if ctx.guild.icon:
+        embed.set_author(name=f"{SUNUCU_ADI} | Takım Piyasası", icon_url=ctx.guild.icon.url)
+    embed.add_field(name="🏟️ Toplam Takım", value=f"**{len(siralanmis)}**", inline=True)
+    embed.add_field(name="👥 Toplam Oyuncu", value=f"**{len(oyuncular)}**", inline=True)
+    embed.add_field(name="💸 Toplam Piyasa", value=f"**{toplam_piyasa:g}M€**", inline=True)
     embed.set_footer(text=f"Sorgulayan: {ctx.author.display_name}  •  {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     await ctx.send(embed=embed)
 
