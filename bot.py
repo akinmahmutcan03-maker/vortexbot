@@ -46,7 +46,6 @@ ROLLER = {
 }
 
 TAKIM_LOGOLARI = {
-    "Paris": "https://i.imgur.com/y4N2yJp.png",
     "PSG": "https://i.imgur.com/y4N2yJp.png",
     "Barcelona": "https://i.imgur.com/w6TqTzL.png",
     "Real Madrid": "https://i.imgur.com/gJ6hL6x.png",
@@ -55,7 +54,6 @@ TAKIM_LOGOLARI = {
     "Galatasaray": "https://i.imgur.com/jMzNz3a.png",
     "Fenerbahçe": "https://i.imgur.com/z4f1YfN.png",
     "Arsenal": "https://i.imgur.com/P4aGzS6.png",
-    "Bayern": "https://i.imgur.com/3f3f3f3.png",
     "Bayern Münih": "https://i.imgur.com/3f3f3f3.png",
     "Beşiktaş": "https://i.imgur.com/3f3f3f3.png",
 }
@@ -896,7 +894,7 @@ async def pay(ctx, alici: discord.Member, miktar: int):
     embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi  •  {datetime.now().strftime('%H:%M')}")
     await ctx.send(embed=embed)
 
-@bot.command(name='para-ver')
+@bot.command(name='para-ekle')
 @commands.has_permissions(administrator=True)
 async def para_ver_admin(ctx, uye: discord.Member, miktar: int):
     data, k = get_user_para_data(uye.id)
