@@ -1,0 +1,183 @@
+
+[
+  {
+    "question": "2014 Dünya Kupası finalinde Almanya'ya galibiyet golünü getiren oyuncu kimdir?",
+    "answer": "Mario Götze",
+    "difficulty": "orta",
+    "points": 7
+  },
+  {
+    "question": "Cristiano Ronaldo, Manchester United'a ilk transferini hangi takımdan yapmıştır?",
+    "answer": "Sporting Lizbon",
+    "difficulty": "kolay",
+    "points": 5
+  },
+  {
+    "question": "Tarihin en çok Dünya Kupası kazanan milli takımı hangisidir?",
+    "answer": "Brezilya",
+    "difficulty": "çok kolay",
+    "points": 2
+  },
+  {
+    "question": "UEFA Şampiyonlar Ligi'ni en çok kazanan takım hangisidir?",
+    "answer": "Real Madrid",
+    "difficulty": "çok kolay",
+    "points": 2
+  },
+  {
+    "question": "Bir futbol topunun standart olarak kaç panelden oluştuğu kabul edilir?",
+    "answer": "32",
+    "difficulty": "zor",
+    "points": 10
+  },
+  {
+    "question": "Futbolda, topun kalecinin elinden 6 saniyeden fazla kalması durumunda rakip takım hangi hakkı kazanır?",
+    "answer": "Endirekt serbest vuruş",
+    "difficulty": "zor",
+    "points": 10
+  },
+  {
+    "question": "Premier League tarihinde en çok gol atan oyuncu kimdir?",
+    "answer": "Alan Shearer",
+    "difficulty": "orta",
+    "points": 7
+  },
+  {
+    "question": "Türkiye Süper Lig'inde en çok şampiyon olan takım hangisidir?",
+    "answer": "Galatasaray",
+    "difficulty": "çok kolay",
+    "points": 2
+  },
+  {
+    "question": "Lionel Messi, kariyerinin büyük bir bölümünü hangi kulüpte geçirmiştir?",
+    "answer": "Barcelona",
+    "difficulty": "kolay",
+    "points": 5
+  },
+  {
+    "question": "2002 Dünya Kupası'nda Türkiye'nin yarı finalde karşılaştığı ve elendiği takım hangisidir?",
+    "answer": "Brezilya",
+    "difficulty": "orta",
+    "points": 7
+  },
+  {
+    "question": "'Fenomen' lakabıyla tanınan Brezilyalı efsane forvet kimdir?",
+    "answer": "Ronaldo",
+    "difficulty": "orta",
+    "points": 7
+  },
+  {
+    "question": "Şampiyonlar Ligi tarihinde, bir maçta 5 gol atan ilk oyuncu kimdir?",
+    "answer": "Lionel Messi",
+    "difficulty": "zor",
+    "points": 10
+  },
+   {
+    "question": "Hangi kaleci, futbol tarihinde Altın Top (Ballon d'Or) ödülünü kazanan tek kalecidir?",
+    "answer": "Lev Yaşin",
+    "difficulty": "zor",
+    "points": 10
+  },
+  {
+    "question": "Arjantin milli takımı en son hangi yılda Dünya Kupası'nı kazanmıştır?",
+    "answer": "2022",
+    "difficulty": "kolay",
+    "points": 5
+  },
+  {
+    "question": "İtalya Serie A'da 'Derby della Madonnina' olarak bilinen derbi hangi iki takım arasında oynanır?",
+    "answer": "Inter ve Milan",
+    "difficulty": "orta",
+    "points": 7
+  },
+  {
+    "question": "Futbolda 'hat-trick' yapmak ne anlama gelir?",
+    "answer": "Bir maçta üç gol atmak",
+    "difficulty": "çok kolay",
+    "points": 2
+  },
+  {
+    "question": "2000 UEFA Kupası finalinde Galatasaray'ın rakibi kimdi?",
+    "answer": "Arsenal",
+    "difficulty": "kolay",
+    "points": 5
+  },
+  {
+    "question": "'Hollandalı efsane' olarak bilinen ve total futbol anlayışının simgesi olan oyuncu kimdir?",
+    "answer": "Johan Cruyff",
+    "difficulty": "orta",
+    "points": 7
+  },
+  {
+    "question": "La Liga'da 'El Clásico' olarak bilinen maç hangi iki takım arasında oynanır?",
+    "answer": "Real Madrid ve Barcelona",
+    "difficulty": "çok kolay",
+    "points": 2
+  },
+  {
+    "question": "Hangi futbolcu, hem Şampiyonlar Ligi'ni hem de Dünya Kupası'nı aynı yıl içinde kazanan ve her iki finalde de gol atan ilk oyuncudur?",
+    "answer": "Gerd Müller",
+    "difficulty": "zor",
+    "points": 10
+  },
+  {
+    "question": "Süper Lig tarihinde bir sezonda en çok gol atan yabancı oyuncu kimdir?",
+    "answer": "Mbaye Diagne",
+    "difficulty": "orta",
+    "points": 7
+  },
+  {
+    "question": "İngiltere'de 'The Invincibles' (Yenilmezler) lakabıyla anılan ve bir sezonu hiç maç kaybetmeden şampiyon tamamlayan takım hangisidir?",
+    "answer": "Arsenal",
+    "difficulty": "orta",
+    "points": 7
+  },
+  {
+    "question": "Dünya Kupası tarihinde en çok gol atan oyuncu kimdir?",
+    "answer": "Miroslav Klose",
+    "difficulty": "kolay",
+    "points": 5
+  },
+  {
+    "question": "'Le Professeur' (Profesör) lakaplı, Arsenal'i uzun yıllar çalıştıran teknik direktör kimdir?",
+    "answer": "Arsene Wenger",
+    "difficulty": "kolay",
+    "points": 5
+  },
+  {
+    "question": "1999 Şampiyonlar Ligi finalinde Manchester United'ın son dakikalarda attığı gollerle Bayern Münih'i yendiği maç hangi stadyumda oynanmıştır?",
+    "answer": "Camp Nou",
+    "difficulty": "zor",
+    "points": 10
+  },
+  {
+    "question": "Bir sezonda en çok gol atma rekoru (La Liga) kime aittir?",
+    "answer": "Lionel Messi",
+    "difficulty": "orta",
+    "points": 7
+  },
+  {
+    "question": "Fenerbahçe'nin stadının adı nedir?",
+    "answer": "Ülker Stadyumu",
+    "difficulty": "çok kolay",
+    "points": 2
+  },
+  {
+    "question": "2018 Dünya Kupası'nı hangi ülke kazanmıştır?",
+    "answer": "Fransa",
+    "difficulty": "kolay",
+    "points": 5
+  },
+  {
+    "question": "Hangi takım 'Kırmızı Şeytanlar' lakabıyla bilinir?",
+    "answer": "Manchester United",
+    "difficulty": "kolay",
+    "points": 5
+  },
+  {
+    "question": "Ajax altyapısından yetişen ve 'Sarı Fare' lakabıyla bilinen efsanevi Hollandalı futbolcu kimdir?",
+    "answer": "Johan Cruyff",
+    "difficulty": "orta",
+    "points": 7
+  }
+]

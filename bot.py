@@ -22,7 +22,7 @@ ANTRENMAN_BILDIRI_KANAL_ID = 1490459777099104317  # #💪・antreman-bildiri
 INSTAGRAM_KANAL_ID = 1497560096820039710        # #💻・instagram
 KAYIT_KANAL_ID = 1404547804747268236            # #🔐・kayıt-odası
 KAYIT_YETKILI_ROL_ID = 1395723128746938589      # @・Kayıt Yetkilisi
-KAYITSIZ_ROL_ID = 1395721334033485824           # @・Kayıtsız
+KAYITSIZ_ROL_ID = 1395721334033485824 # @・Kayıtsız
 LOG_KANAL_ID = 1489937929123135588              # #loglar
 SOHBET_KANAL_ID = 1506977726630985768           # #💬・sohbet
 TICKET_KANAL_ID = 1396517861446389770           # #📪・sorun-ticket
@@ -37,12 +37,16 @@ ILAN_VER_KANAL_ID = 1497558674065981511         # #🔌・bot-komut
 TRANSFER_LISTESI_ID = 1497564259092004944       # #📝・transfer-listesi
 DEGER_LOG = 1509901258801152071                 # #📩・değer-bildirme
 KAYITLI_ROL_ID = 1395722904905191515            # @・Kayıtlı
+quiz_channel_id=1506977726630985768
+ÜYE_ROL_ID = 1398373386782117939
 
 ROLLER = {
     "futbolcu": FUTBOLCU_ROL_ID, 
     "teknik direktör": TEKNIK_DIREKTOR_ROL_ID,
     "kayitli": KAYITLI_ROL_ID,
-    "kayitsiz": KAYITSIZ_ROL_ID
+    "kayitsiz": KAYITSIZ_ROL_ID,
+    "üye" : ÜYE_ROL_ID,
+    "baskan": BASKAN_ROL_ID
 }
 
 TAKIM_LOGOLARI = {
@@ -139,6 +143,50 @@ def stat_ekle(uid: str, key: str, miktar: int = 1):
 # Verileri başlangıçta yükle
 antrenman_sayaci = veri_yukle(ANTRENMAN_DOSYA, {})
 
+# --- Bilgi Yarışması Ayarları ---
+
+current_question = {}
+quiz_lock = asyncio.Lock()
+
+@tasks.loop(hours=5) # Saatte bir kontrol etmesi için döngüyü ayarladık
+async def question_task_runner():
+    """'ask_question_loop'un düzgün çalışmasını sağlayan ana döngü."""
+    # Bu döngü, asıl ask_question_loop'un içindeki uzun beklemelerin 
+    # botun diğer aktivitelerini bloklamasını engellemeye yardımcı olur.
+    # Asıl mantık ask_question_loop içinde kalacak.
+    pass
+
+async def ask_question_loop():
+    """Arka planda periyodik olarak soru soran döngü."""
+    await bot.wait_until_ready()
+    quiz_channel = bot.get_channel(quiz_channel_id)
+    if not quiz_channel:
+        print(f"HATA: Bilgi Yarışması kanalı (ID: {quiz_channel_id}) bulunamadı.")
+        return
+
+    while not bot.is_closed():
+        wait_time = random.randint(2 * 1200, 5 * 1200)
+        await asyncio.sleep(wait_time)
+
+        async with quiz_lock:
+            if current_question:
+                continue
+
+            with open('questions.json', 'r', encoding='utf-8') as f:
+                questions = json.load(f)
+
+            question_data = random.choice(questions)
+            current_question = question_data
+
+            embed = discord.Embed(
+                title="🧠 Futbol Bilgi Yarışması!",
+                description=question_data['question'],
+                color=discord.Color.gold()
+            )
+            embed.set_footer(text=f"Zorluk: {question_data['difficulty']} | Ödül: {question_data['points']}M€ değer")
+
+            await quiz_channel.send(embed=embed)
+
 # =============================================================
 # 4. EVENTLER (on_ready, on_member_join vb.)
 # =============================================================
@@ -217,7 +265,24 @@ async def on_member_join(member):
     embed.set_footer(text=f"{SUNUCU_ADI} • Kayıt Sistemi  •  {simdi.strftime('%d.%m.%Y %H:%M')}")
 
     await channel.send(content=f"🚨 <@&{KAYIT_YETKILI_ROL_ID}> yeni kayıt!", embed=embed)
+    
+@bot.event
+async def on_message(message):
+    """Kanala gönderilen her mesajı kontrol eder."""
+    global current_question
+    if message.author.bot or not message.guild:
+        await bot.process_commands(message)
+        return
 
+    async with quiz_lock:
+        if current_question and message.channel.id == quiz_channel_id:
+            if message.content.lower().strip() == current_question['answer'].lower():
+                winner = message.author
+                points = current_question['points']
+                await message.channel.send(f"🎉 Tebrikler {winner.mention}! **{current_question['answer']}** doğru cevabıyla **{points}**M€ Değer kazandın!")
+                current_question = {}
+
+    await bot.process_commands(message)   
 # =============================================================
 # 5. DEĞER SİSTEMİ (GELİŞMİŞ TASARIM)
 # =============================================================
@@ -532,11 +597,32 @@ async def takim_deger_sirala(ctx):
 # =============================================================
 # 6. GERİ YÜKLENEN TÜM ESKİ KOMUTLAR
 # =============================================================
+@bot.command(name='ara')
+async def oyuncu_ara(ctx, *, aranan_kelime: str):
+    """Sunucudaki üyeleri takma adlarına göre arar ve sonuçları listeler."""
+    aranan_kelime = aranan_kelime.lower()
+    bulunan_uyeler = []
+    for uye in ctx.guild.members:
+        if aranan_kelime in uye.display_name.lower():
+            bulunan_uyeler.append(uye)
+    embed = discord.Embed(title="Oyuncu Arama Sonucu", color=discord.Color.from_rgb(113, 107, 224))
+    if not bulunan_uyeler:
+        embed.description = f"`{aranan_kelime}` ile eşleşen bir oyuncu bulunamadı."
+    else:
+        aciklama = ""
+        for i, uye in enumerate(bulunan_uyeler, 1):
+            aciklama += f"{i}. {uye.mention}\n"
+        embed.description = aciklama
+        embed.add_field(name="Aranan", value=f"`{aranan_kelime}`", inline=True)
+        embed.add_field(name="Bulunan", value=f"`{len(bulunan_uyeler)}`", inline=True)
+    zaman_damgasi = datetime.now().strftime("bugün saat %H:%M")
+    embed.set_footer(text=f"Toplam {len(bulunan_uyeler)} kişi bulundu • {zaman_damgasi}")
+    await ctx.send(embed=embed)
 
 # --- GENEL KOMUTLAR ---
 @bot.command(name="şart")
 async def sart_mesaji(ctx):
-    rol_al_kanali_id = 1505490401690124288
+    rol_al_kanali_id = 1509959514122747995
     embed = discord.Embed(
         title="📢 Katılım Şartları",
         description=f"Lige katılabilmek veya devam edebilmek için lütfen <#{rol_al_kanali_id}> kanalından en az **1 adet rol** alınız.",
@@ -771,13 +857,19 @@ class KayitButonlari(discord.ui.View):
         await interaction.response.send_message("✅ Kayıt tamamlandı.", ephemeral=True)
         if interaction.message: await interaction.message.delete()
 
-    @discord.ui.button(label="Futbolcu", emoji="⚽", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Futbolcu", emoji="<:futbolcu:1396918227099062363>", style=discord.ButtonStyle.primary)
     async def futbolcu_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.rol_ata(interaction, ROLLER["futbolcu"], "Futbolcu")
-    @discord.ui.button(label="Teknik Direktör", emoji="👑", style=discord.ButtonStyle.danger)
+    @discord.ui.button(label="Teknik Direktör", emoji="<:vortextd:1396920425459486761>", style=discord.ButtonStyle.danger)
     async def td_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.rol_ata(interaction, ROLLER["teknik direktör"], "Teknik Direktör")
-
+    @discord.ui.button(label="Başkan", emoji=":baskan:1509981712879190138", style=discord.ButtonStyle.success)
+    async def baskan_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.rol_ata(interaction, ROLLER["baskan"], "Başkan")
+    @discord.ui.button(label="Üye", emoji="<:uye:1509978759267356683>", style=discord.ButtonStyle.secondary)
+    async def uye_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.rol_ata(interaction, ROLLER["üye"], "Üye")    
+        
 @bot.command(name="kayıt", aliases=["k"])
 async def kayit(ctx, uye: discord.Member, *, isim: str):
     if not (ctx.author.guild_permissions.administrator or ctx.author.get_role(KAYIT_YETKILI_ROL_ID)):
@@ -1121,8 +1213,45 @@ async def transfer(ctx, oyuncu: discord.Member, numara: str, sure: str, *, yeni_
     await ctx.send(content=f"🔔 **SON DAKİKA:** {oyuncu.mention} transferi tamamlandı!", embed=embed)
     try: await ctx.message.delete()
     except: pass
+        
+# --- BİLGİ YARIŞMASI KOMUTLARI ---
 
-@bot.command(name="takımara", aliases=["ara"])
+@bot.command(name='sorusor')
+@commands.check(lambda ctx: ctx.author.id == OWNER_ID)
+async def sorusor(ctx):
+    """Manuel olarak bir bilgi yarışması sorusu sorar. (Sadece sahip kullanabilir)"""
+    quiz_channel = bot.get_channel(quiz_channel_id)
+    if not quiz_channel:
+        await ctx.send("Bilgi yarışması kanalı bulunamadı.")
+        return
+    global current_question
+    async with quiz_lock:
+        if current_question:
+            await ctx.send("Zaten cevaplanmamış bir soru var. Lütfen onun cevaplanmasını bekleyin.")
+            return
+
+        with open('questions.json', 'r', encoding='utf-8') as f:
+            questions = json.load(f)
+        
+        question_data = random.choice(questions)
+        current_question = question_data
+
+        embed = discord.Embed(
+            title="🧠 Futbol Bilgi Yarışması!",
+            description=question_data['question'],
+            color=discord.Color.gold()
+        )
+        embed.set_footer(text=f"Zorluk: {question_data['difficulty']} | Ödül: {question_data['points']}M€ değer")
+        
+        await quiz_channel.send(embed=embed)
+        await ctx.message.add_reaction('✅')
+@sorusor.error
+async def sorusor_error(ctx, error):
+    if isinstance(error, commands.CheckFailure):
+        await ctx.message.add_reaction('❌')
+        await ctx.send("Bu komutu kullanma yetkiniz yok.", delete_after=10)
+        
+@bot.command(name="takımara")
 @commands.cooldown(1, 60, commands.BucketType.user)
 async def takim_ara(ctx, *, mesaj="Yeni oyuncu takım arıyor! ⚽"):
     td_rol = ctx.guild.get_role(ROLLER["teknik direktör"])
@@ -1381,7 +1510,7 @@ class HelpMenu(discord.ui.View):
             "`.macsaati @ev @dep saat` — Maç duyurusu\n"
             "`.post [içerik]` — Instagram tarzı post\n"
             "`.takım @rol` — Takım bilgilerini gör\n"
-            "`.ara` — Takım aradığını duyur"
+            "`.takımara` — Takım aradığını duyur"
         )
         await interaction.response.edit_message(embed=self.get_embed("📋 Sunucu", icerik))
 
