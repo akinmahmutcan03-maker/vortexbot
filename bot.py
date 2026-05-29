@@ -209,8 +209,14 @@ def deger_tier(deger: float) -> tuple[str, int]:
         return ("📋 Sıradan", 0x95a5a6)
 
 async def deger_guncelle(ctx, m, miktar, sebep, islem):
-    if not isinstance(ctx.author, discord.Member) or not ctx.author.get_role(DEGER_YETKILISI_ROL_ID):
-        return await ctx.send("❌ Yetkin yok!")
+    izinli_roller = [DEGER_YETKILISI_ROL_ID, BASKAN_ROL_ID, YETKILI_1_ID]
+    sahip_mi = (
+        ctx.author.id == OWNER_ID or
+        (isinstance(ctx.author, discord.Member) and
+         any(ctx.author.get_role(r) for r in izinli_roller))
+    )
+    if not sahip_mi:
+        return await ctx.send("❌ Bu komutu kullanmak için **Değer Yetkilisi** rolüne ihtiyacın var!")
     try:
         val = parse_deger(miktar)
         parcalar = m.display_name.split(" | ")
@@ -320,12 +326,10 @@ async def deger_guncelle(ctx, m, miktar, sebep, islem):
         )
 
 @bot.command(name='değerver')
-@commands.has_permissions(manage_nicknames=True)
 async def deger_ver(ctx, m: discord.Member, miktar: str, *, sebep: str = "Belirtilmedi"):
     await deger_guncelle(ctx, m, miktar, sebep, "artir")
 
 @bot.command(name='değersil')
-@commands.has_permissions(manage_nicknames=True)
 async def deger_sil(ctx, m: discord.Member, miktar: str, *, sebep: str = "Belirtilmedi"):
     await deger_guncelle(ctx, m, miktar, sebep, "azalt")
 
