@@ -150,19 +150,38 @@ async def on_ready():
         self_ping.start()
     print(f"✅ {bot.user} AKTİF! {SUNUCU_ADI} Sistemi Hazır.")
 
+def embed_hata(baslik: str, aciklama: str) -> discord.Embed:
+    e = discord.Embed(title=f"❌  {baslik}", description=aciklama, color=0xe74c3c)
+    e.set_footer(text=SUNUCU_ADI)
+    return e
+
+def embed_basari(baslik: str, aciklama: str) -> discord.Embed:
+    e = discord.Embed(title=f"✅  {baslik}", description=aciklama, color=0x2ecc71)
+    e.set_footer(text=SUNUCU_ADI)
+    return e
+
+def embed_bilgi(baslik: str, renk: int = 0x7c3aed) -> discord.Embed:
+    e = discord.Embed(title=baslik, color=renk)
+    e.set_footer(text=f"{SUNUCU_ADI}  •  {datetime.now().strftime('%d.%m.%Y %H:%M')}")
+    return e
+
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         kullanilan = ctx.message.content.split()[0][1:]
         embed = discord.Embed(
-            description=f"❌ **`.{kullanilan}`** diye bir komut yok.\n`.yardım` yazarak mevcut komut listesine bakabilirsin.",
+            description=f"**`.{kullanilan}`** diye bir komut yok.\n`.yardım` yazarak mevcut komut listesine bakabilirsin.",
             color=0xe74c3c
         )
+        embed.set_author(name=f"⚡ {SUNUCU_ADI}", icon_url=ctx.guild.icon.url if ctx.guild and ctx.guild.icon else None)
+        embed.set_footer(text="Doğru komutu bulmak için .yardım yaz")
         await ctx.send(embed=embed, delete_after=8)
     elif isinstance(error, commands.MissingPermissions):
-        await ctx.send("❌ Bu komutu kullanmak için yetkin yok!", delete_after=8)
+        await ctx.send(embed=embed_hata("Yetersiz Yetki", "Bu komutu kullanmak için yetkin yok!"), delete_after=8)
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send(f"❌ Eksik argüman! Lütfen komutu doğru kullan: `.{ctx.command.name} {ctx.command.signature}`", delete_after=8)
+        await ctx.send(embed=embed_hata("Eksik Argüman", f"Komutu doğru kullan:\n`.{ctx.command.name} {ctx.command.signature}`"), delete_after=8)
+    elif isinstance(error, commands.CommandOnCooldown):
+        await ctx.send(embed=embed_hata("Bekleme Süresi", f"Bu komutu tekrar kullanmak için **{error.retry_after:.0f} saniye** bekle!"), delete_after=8)
     else:
         print(f"Bir hata oluştu: {error}")
 
@@ -179,26 +198,27 @@ async def on_member_join(member):
     elif hesap_yasi >= 7: guvenlik = "🟡 Şüpheli"
     else: guvenlik = "🔴 Yeni Hesap"
 
-    embed = discord.Embed(
-        title=f"⚡ {SUNUCU_ADI}'E YENİ BİR OYUNCU KATILDI",
-        description=f"🎉 Aramıza hoş geldin {member.mention}",
-        color=0x7c3aed
+    embed = discord.Embed(color=0x7c3aed)
+    embed.set_author(
+        name=f"⚡ {SUNUCU_ADI} — Yeni Oyuncu",
+        icon_url=member.guild.icon.url if member.guild.icon else None
     )
-    embed.add_field(name="👤 Kullanıcı", value=f"{member.name}", inline=True)
+    embed.description = (
+        f"## 🎉 Aramıza hoş geldin, {member.mention}!\n"
+        f"{'─' * 30}\n"
+        f"Sunucumuzun **{member.guild.member_count}.** üyesi oldun."
+    )
+    embed.add_field(name="👤 Kullanıcı", value=f"`{member.name}`", inline=True)
     embed.add_field(name="🆔 ID", value=f"`{member.id}`", inline=True)
-    embed.add_field(name="👥 Sunucu", value=f"{member.guild.member_count}. üye", inline=True)
-    embed.add_field(name="📅 Hesap Oluşturma", value=member.created_at.strftime("%d.%m.%Y %H:%M"), inline=False)
-    embed.add_field(name="⏳ Hesap Yaşı", value=f"{hesap_yasi} gün", inline=True)
     embed.add_field(name="🛡️ Güvenlik", value=guvenlik, inline=True)
-    embed.add_field(name="📋 Durum", value="`Kayıt Bekliyor...`", inline=False)
-
+    embed.add_field(name="📅 Hesap Oluşturma", value=member.created_at.strftime("%d.%m.%Y"), inline=True)
+    embed.add_field(name="⏳ Hesap Yaşı", value=f"**{hesap_yasi}** gün", inline=True)
+    embed.add_field(name="📋 Durum", value="```\nKayıt Bekliyor...\n```", inline=False)
     if member.avatar:
         embed.set_thumbnail(url=member.avatar.url)
-    if member.guild.icon:
-        embed.set_author(name=member.guild.name, icon_url=member.guild.icon.url)
-    embed.set_footer(text=f"{SUNUCU_ADI} • Kayıt Sistemi")
+    embed.set_footer(text=f"{SUNUCU_ADI} • Kayıt Sistemi  •  {simdi.strftime('%d.%m.%Y %H:%M')}")
 
-    await channel.send(content=f"🚨 <@&{KAYIT_YETKILI_ROL_ID}> yeni kayıt geldi!", embed=embed)
+    await channel.send(content=f"🚨 <@&{KAYIT_YETKILI_ROL_ID}> yeni kayıt!", embed=embed)
 
 # =============================================================
 # 5. DEĞER SİSTEMİ (GELİŞMİŞ TASARIM)
@@ -734,15 +754,18 @@ class KayitButonlari(discord.ui.View):
             return await interaction.response.send_message("❌ Bot rolü yetkisiz!", ephemeral=True)
 
         hesap_yasi = (datetime.now(timezone.utc) - self.hedef_uye.created_at).days
-        embed = discord.Embed(title="✅ KAYIT TAMAMLANDI", color=0x00ff99, timestamp=datetime.now(timezone.utc))
-        embed.add_field(name="👤 Oyuncu", value=self.hedef_uye.mention, inline=True)
-        embed.add_field(name="⚽ Rol", value=rol_adi, inline=True)
-        embed.add_field(name="🛡️ Durum", value="Kayıtlı", inline=True)
-        embed.add_field(name="📛 Nick", value=self.hedef_uye.display_name, inline=False)
-        embed.add_field(name="📅 Hesap Yaşı", value=f"{hesap_yasi} gün", inline=True)
-        embed.add_field(name="👑 Yetkili", value=interaction.user.mention, inline=True)
+        embed = discord.Embed(color=0x00ff99)
+        embed.set_author(name=f"✅ {SUNUCU_ADI} — Kayıt Tamamlandı", icon_url=interaction.guild.icon.url if interaction.guild and interaction.guild.icon else None)
+        embed.description = (
+            f"## 🎉 {self.hedef_uye.mention} sunucuya katıldı!\n"
+            f"{'─' * 30}\n"
+            f"📛 Nick: **{self.hedef_uye.display_name}**\n"
+            f"⚽ Rol: **{rol_adi}**\n"
+            f"📅 Hesap Yaşı: **{hesap_yasi} gün**\n"
+            f"👑 Yetkili: {interaction.user.mention}"
+        )
         embed.set_thumbnail(url=self.hedef_uye.display_avatar.url)
-        embed.set_footer(text=f"{SUNUCU_ADI} Registration System")
+        embed.set_footer(text=f"{SUNUCU_ADI} • Kayıt Sistemi  •  {datetime.now().strftime('%d.%m.%Y %H:%M')}")
         sohbet_kanal = guild.get_channel(SOHBET_KANAL_ID)
         if sohbet_kanal: await sohbet_kanal.send(content=f"🎉 {self.hedef_uye.mention} aramıza katıldı!", embed=embed)
         log_kanal = guild.get_channel(LOG_KANAL_ID)
@@ -784,76 +807,146 @@ async def kayitsiz_ver(ctx, m: discord.Member):
         await ctx.send("❌ **Hata:** Botun yetkisi bu üyeyi düzenlemeye yetmiyor!")
 
 # --- EKONOMİ ---
+def para_bar(miktar: int, maks: int = 100000) -> str:
+    filled = min(int(miktar * 10 / maks), 10)
+    return "█" * filled + "░" * (10 - filled)
+
 @bot.command(name='para')
 async def para_goster(ctx, uye: discord.Member = None):
     uye = uye or ctx.author
-    data, kullanici = get_user_para_data(uye.id)
-    toplam = kullanici["cash"] + kullanici["bank"]
-    embed = discord.Embed(title="💰 Cüzdan Bilgileri", color=0xf1c40f)
-    embed.set_author(name=uye.display_name, icon_url=uye.display_avatar.url)
-    embed.add_field(name="💵 Nakit", value=f"**{kullanici['cash']:,}₺**", inline=True)
-    embed.add_field(name="🏦 Banka", value=f"**{kullanici['bank']:,}₺**", inline=True)
-    embed.add_field(name="📊 Toplam", value=f"**{toplam:,}₺**", inline=True)
-    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi Sistemi")
+    data, k = get_user_para_data(uye.id)
+    toplam = k["cash"] + k["bank"]
+    embed = discord.Embed(color=0xf1c40f)
+    embed.set_author(name=f"💰 {uye.display_name} — Cüzdan", icon_url=uye.display_avatar.url)
+    embed.description = (
+        f"{'─' * 30}\n"
+        f"💵 **Nakit:** `{k['cash']:,}₺`\n"
+        f"🏦 **Banka:** `{k['bank']:,}₺`\n"
+        f"{'─' * 30}\n"
+        f"📊 **Toplam:** `{toplam:,}₺`\n"
+        f"`{para_bar(toplam)}`"
+    )
+    embed.set_thumbnail(url=uye.display_avatar.url)
+    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi  •  {datetime.now().strftime('%H:%M')}")
     await ctx.send(embed=embed)
 
 @bot.command(name='deposit', aliases=["yatır"])
 async def deposit(ctx, miktar: int):
     if miktar <= 0:
-        return await ctx.send("❌ Geçersiz miktar!", delete_after=5)
-    data, kullanici = get_user_para_data(ctx.author.id)
-    if kullanici["cash"] < miktar:
-        return await ctx.send(f"❌ Yeterli nakit yok! Nakitin: **{kullanici['cash']:,}₺**", delete_after=5)
-    kullanici["cash"] -= miktar
-    kullanici["bank"] += miktar
+        return await ctx.send(embed=embed_hata("Geçersiz Miktar", "0'dan büyük bir miktar gir."), delete_after=5)
+    data, k = get_user_para_data(ctx.author.id)
+    if k["cash"] < miktar:
+        return await ctx.send(embed=embed_hata("Yetersiz Nakit", f"Nakitin: **{k['cash']:,}₺**"), delete_after=5)
+    k["cash"] -= miktar
+    k["bank"] += miktar
     veri_kaydet(PARA_DOSYA, data)
-    embed = discord.Embed(title="🏦 Para Yatırıldı", color=0x2ecc71,
-        description=f"**{miktar:,}₺** bankana yatırıldı.\n\n💵 Nakit: **{kullanici['cash']:,}₺**\n🏦 Banka: **{kullanici['bank']:,}₺**")
-    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi Sistemi")
+    embed = discord.Embed(color=0x2ecc71)
+    embed.set_author(name="🏦 Para Yatırıldı", icon_url=ctx.author.display_avatar.url)
+    embed.description = (
+        f"**{miktar:,}₺** başarıyla bankana yatırıldı.\n"
+        f"{'─' * 28}\n"
+        f"💵 Nakit → `{k['cash']:,}₺`\n"
+        f"🏦 Banka → `{k['bank']:,}₺`"
+    )
+    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi")
     await ctx.send(embed=embed)
 
 @bot.command(name='withdraw', aliases=["çek"])
 async def withdraw(ctx, miktar: int):
     if miktar <= 0:
-        return await ctx.send("❌ Geçersiz miktar!", delete_after=5)
-    data, kullanici = get_user_para_data(ctx.author.id)
-    if kullanici["bank"] < miktar:
-        return await ctx.send(f"❌ Bankanda yeterli para yok! Banka: **{kullanici['bank']:,}₺**", delete_after=5)
-    kullanici["bank"] -= miktar
-    kullanici["cash"] += miktar
+        return await ctx.send(embed=embed_hata("Geçersiz Miktar", "0'dan büyük bir miktar gir."), delete_after=5)
+    data, k = get_user_para_data(ctx.author.id)
+    if k["bank"] < miktar:
+        return await ctx.send(embed=embed_hata("Yetersiz Bakiye", f"Bankandaki para: **{k['bank']:,}₺**"), delete_after=5)
+    k["bank"] -= miktar
+    k["cash"] += miktar
     veri_kaydet(PARA_DOSYA, data)
-    embed = discord.Embed(title="💵 Para Çekildi", color=0x3498db,
-        description=f"**{miktar:,}₺** bankandan çekildi.\n\n💵 Nakit: **{kullanici['cash']:,}₺**\n🏦 Banka: **{kullanici['bank']:,}₺**")
-    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi Sistemi")
+    embed = discord.Embed(color=0x3498db)
+    embed.set_author(name="💵 Para Çekildi", icon_url=ctx.author.display_avatar.url)
+    embed.description = (
+        f"**{miktar:,}₺** bankandan çekildi.\n"
+        f"{'─' * 28}\n"
+        f"💵 Nakit → `{k['cash']:,}₺`\n"
+        f"🏦 Banka → `{k['bank']:,}₺`"
+    )
+    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi")
     await ctx.send(embed=embed)
 
 @bot.command(name='pay', aliases=["ver", "gönder"])
 async def pay(ctx, alici: discord.Member, miktar: int):
     if miktar <= 0:
-        return await ctx.send("❌ Geçersiz miktar!", delete_after=5)
+        return await ctx.send(embed=embed_hata("Geçersiz Miktar", "0'dan büyük bir miktar gir."), delete_after=5)
     if alici == ctx.author:
-        return await ctx.send("❌ Kendine para gönderemezsin!", delete_after=5)
+        return await ctx.send(embed=embed_hata("Hata", "Kendine para gönderemezsin!"), delete_after=5)
     data, gonderen = get_user_para_data(ctx.author.id)
     if gonderen["cash"] < miktar:
-        return await ctx.send(f"❌ Yeterli nakit yok! Nakitin: **{gonderen['cash']:,}₺**", delete_after=5)
+        return await ctx.send(embed=embed_hata("Yetersiz Nakit", f"Nakitin: **{gonderen['cash']:,}₺**"), delete_after=5)
     _, alan = get_user_para_data(alici.id)
     gonderen["cash"] -= miktar
     alan["cash"] += miktar
     veri_kaydet(PARA_DOSYA, data)
-    embed = discord.Embed(title="💸 Para Transferi", color=0x9b59b6,
-        description=f"{ctx.author.mention} → {alici.mention}\n\n**{miktar:,}₺** başarıyla gönderildi!")
-    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi Sistemi")
+    embed = discord.Embed(color=0x9b59b6)
+    embed.set_author(name="💸 Para Transferi", icon_url=ctx.author.display_avatar.url)
+    embed.description = (
+        f"{ctx.author.mention} **→** {alici.mention}\n"
+        f"{'─' * 28}\n"
+        f"💸 Transfer: **{miktar:,}₺**\n"
+        f"✅ İşlem başarıyla tamamlandı!"
+    )
+    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi  •  {datetime.now().strftime('%H:%M')}")
     await ctx.send(embed=embed)
 
 @bot.command(name='para-ver')
 @commands.has_permissions(administrator=True)
 async def para_ver_admin(ctx, uye: discord.Member, miktar: int):
-    data, kullanici = get_user_para_data(uye.id)
-    kullanici["cash"] += miktar
+    data, k = get_user_para_data(uye.id)
+    k["cash"] += miktar
     veri_kaydet(PARA_DOSYA, data)
-    embed = discord.Embed(title="✅ Para Verildi", color=0x2ecc71,
-        description=f"{uye.mention} hesabına **{miktar:,}₺** eklendi.\n\n💵 Yeni nakit: **{kullanici['cash']:,}₺**")
-    embed.set_footer(text=f"Yetkili: {ctx.author.display_name}")
+    embed = discord.Embed(color=0x2ecc71)
+    embed.set_author(name="✅ Para Eklendi", icon_url=ctx.author.display_avatar.url)
+    embed.description = (
+        f"{uye.mention} hesabına **{miktar:,}₺** eklendi.\n"
+        f"{'─' * 28}\n"
+        f"💵 Yeni nakit: `{k['cash']:,}₺`"
+    )
+    embed.set_footer(text=f"Yetkili: {ctx.author.display_name}  •  {SUNUCU_ADI}")
+    await ctx.send(embed=embed)
+
+@bot.command(name='zenginler', aliases=["topzengin", "liderboard"])
+async def zenginler(ctx):
+    data = veri_yukle(PARA_DOSYA)
+    siralama = []
+    for uid, bilgi in data.items():
+        toplam = bilgi.get("cash", 0) + bilgi.get("bank", 0)
+        if toplam > 0:
+            member = ctx.guild.get_member(int(uid))
+            siralama.append((member, toplam, bilgi.get("cash", 0), bilgi.get("bank", 0)))
+    siralama.sort(key=lambda x: x[1], reverse=True)
+    siralama = siralama[:10]
+    if not siralama:
+        return await ctx.send(embed=embed_hata("Veri Yok", "Henüz kayıtlı para verisi bulunmuyor."))
+
+    sira_emoji = {1: "🥇", 2: "🥈", 3: "🥉"}
+    yazi = ""
+    for i, (member, toplam, nakit, banka) in enumerate(siralama, 1):
+        isim = member.display_name if member else f"Kullanıcı ({list(data.keys())[i-1]})"
+        sira = sira_emoji.get(i, f"`#{i}`")
+        bar = para_bar(toplam, siralama[0][1] if siralama[0][1] > 0 else 1)
+        yazi += (
+            f"{sira} **{isim}**\n"
+            f"┣ 💵 Nakit: `{nakit:,}₺` • 🏦 Banka: `{banka:,}₺`\n"
+            f"┗ 💰 Toplam: **{toplam:,}₺**  `{bar}`\n\n"
+        )
+
+    embed = discord.Embed(color=0xffd700)
+    embed.set_author(
+        name=f"💎 {SUNUCU_ADI} — Zenginler Listesi",
+        icon_url=ctx.guild.icon.url if ctx.guild.icon else None
+    )
+    embed.description = yazi
+    embed.add_field(name="👥 Listelenen", value=f"**{len(siralama)}** kişi", inline=True)
+    embed.add_field(name="🏆 En Zengin", value=f"**{siralama[0][1]:,}₺**", inline=True)
+    embed.set_footer(text=f"{SUNUCU_ADI} • Ekonomi  •  {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     await ctx.send(embed=embed)
 
 # --- GELİŞİM ---
@@ -870,23 +963,43 @@ async def ant(ctx):
     progress = c % 10
     if progress != 0:
         bar = "🟦" * progress + "⬜" * (10 - progress)
-        e = discord.Embed(title="🏃 ANTRENMAN DEVAM EDİYOR", description=f"⚽ Sahada yoğun çalışma...\n\n📊 İlerleme: **{progress}/10**\n📈 Genel Sayı: **{c}**\n{bar}\n\n💪 Kondisyon geliştiriliyor...", color=0x3498db)
-        if ctx.author.avatar: e.set_thumbnail(url=ctx.author.avatar.url)
-        e.set_footer(text=f"{ctx.author.display_name} sahada ter döküyor")
+        e = discord.Embed(color=0x3498db)
+        e.set_author(name=f"🏃 Antrenman Devam Ediyor", icon_url=ctx.author.display_avatar.url)
+        e.description = (
+            f"⚽ {ctx.author.mention} sahada yoğun çalışıyor...\n"
+            f"{'─' * 30}\n"
+            f"📊 Tur: **{progress}/10**  •  📈 Toplam: **{c}**\n"
+            f"{bar}"
+        )
+        e.set_thumbnail(url=ctx.author.display_avatar.url)
+        e.set_footer(text=f"{SUNUCU_ADI} • Antrenman Sistemi  •  {datetime.now().strftime('%H:%M')}")
         await ctx.send(embed=e)
     else:
         antrenman_sayaci[u] = 0
         veri_kaydet(ANTRENMAN_DOSYA, antrenman_sayaci)
-        e = discord.Embed(title="🔥 ANTRENMAN TAMAMLANDI!", description="⚽ Harika performans!\n\n💪 Fizik gücü arttı\n📈 Form seviyesi yükseldi\n💰 Değerini alabilirsin", color=0x2ecc71)
-        if ctx.author.avatar: e.set_thumbnail(url=ctx.author.avatar.url)
+        e = discord.Embed(color=0x2ecc71)
+        e.set_author(name="🔥 Antrenman Tamamlandı!", icon_url=ctx.author.display_avatar.url)
+        e.description = (
+            f"## ⚽ {ctx.author.mention} — Mükemmel Performans!\n"
+            f"{'─' * 30}\n"
+            f"💪 Fizik gücü arttı\n"
+            f"📈 Form seviyesi yükseldi\n"
+            f"💰 Değer güncellemesi alınabilir"
+        )
         e.set_image(url="https://media1.tenor.com/m/dmH0nGUtvGQAAAAC/futbol-entrenar.gif")
-        e.set_footer(text="Oyuncu gelişimi tamamlandı")
+        e.set_footer(text=f"{SUNUCU_ADI} • Antrenman Sistemi")
         await ctx.send(embed=e)
         bk = bot.get_channel(ANTRENMAN_BILDIRI_KANAL_ID)
         if bk:
-            notify = discord.Embed(title="📢 OYUNCU GELİŞİMİ", description=f"⚽ {ctx.author.mention} antrenmanını tamamladı!", color=0xf1c40f)
-            notify.add_field(name="🏆 Durum", value="Gelişim tamamlandı", inline=True)
-            notify.add_field(name="💰 Ödül", value="Alınabilir", inline=True)
+            notify = discord.Embed(color=0xf1c40f)
+            notify.set_author(name="📢 Oyuncu Gelişimi Tamamlandı", icon_url=ctx.author.display_avatar.url)
+            notify.description = (
+                f"⚽ {ctx.author.mention} antrenmanını tamamladı!\n"
+                f"{'─' * 28}\n"
+                f"🏆 Durum: **Gelişim tamamlandı**\n"
+                f"💰 Değer güncellemesi: **Alınabilir**"
+            )
+            notify.set_footer(text=f"{SUNUCU_ADI} • {datetime.now().strftime('%d.%m.%Y %H:%M')}")
             await bk.send(content=f"<@&{DEGER_YETKILISI_ROL_ID}>", embed=notify)
 
 # --- TRANSFER VE KULÜP İŞLEMLERİ ---
@@ -1193,64 +1306,110 @@ async def stat_sifirla(ctx, uye: discord.Member = None):
 
 class HelpMenu(discord.ui.View):
     def __init__(self, ctx):
-        super().__init__(timeout=60); self.ctx = ctx
-    async def interaction_check(self, interaction: discord.Interaction): return interaction.user == self.ctx.author
-    def get_embed(self, title, fields):
-        e = discord.Embed(title=f"📖 {SUNUCU_ADI} — {title}", color=0x7c3aed)
-        for name, value in fields.items(): e.add_field(name=name, value=value, inline=False)
-        e.set_footer(text="Prefix: .")
+        super().__init__(timeout=60)
+        self.ctx = ctx
+
+    async def interaction_check(self, interaction: discord.Interaction):
+        return interaction.user == self.ctx.author
+
+    def get_embed(self, kategori: str, icerik: str) -> discord.Embed:
+        e = discord.Embed(color=0x7c3aed)
+        e.set_author(
+            name=f"⚡ {SUNUCU_ADI} — {kategori}",
+            icon_url=self.ctx.guild.icon.url if self.ctx.guild and self.ctx.guild.icon else None
+        )
+        e.description = icerik
+        e.set_footer(text=f"Prefix: .  •  {SUNUCU_ADI}  •  {datetime.now().strftime('%H:%M')}")
         return e
+
     @discord.ui.button(label="🏠 Ana Menü", style=discord.ButtonStyle.secondary, row=2)
     async def ana_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.edit_message(embed=self.get_embed("Yardım Menüsü", {"Genel": "Aşağıdaki butonlardan bir kategori seçerek komutları inceleyebilirsin."}))
+        icerik = (
+            "Aşağıdaki butonlardan bir kategori seçerek komutları inceleyebilirsin.\n\n"
+            "⚽ **Oyunlar** — Eğlence ve mini oyunlar\n"
+            "💰 **Piyasa & Değer** — Oyuncu değeri ve sıralamalar\n"
+            "💵 **Ekonomi** — Para sistemi\n"
+            "📋 **Sunucu** — Kayıt, transfer, maç\n"
+            "🛠️ **Araçlar** — Yetkili komutları"
+        )
+        await interaction.response.edit_message(embed=self.get_embed("Yardım Menüsü", icerik))
+
     @discord.ui.button(label="⚽ Oyunlar", style=discord.ButtonStyle.primary)
     async def oyunlar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        fields = {
-            ".duello @kişi": "Penaltı düellosu yap.",
-            ".halısaha @kişi": "Maç simülasyonu oyna.",
-            ".penaltı": "Penaltı at.",
-            ".yazıtura": "Yazı-tura oyna.",
-            ".roll": "Rastgele sayı veya seçim yap.",
-            ".ship @kişi1 @kişi2": "Aşk uyumunu ölç.",
-            ".kaçcm": "Boyunu ölç."
-        }
-        await interaction.response.edit_message(embed=self.get_embed("Oyunlar", fields))
+        icerik = (
+            "`.duello @kişi` — Penaltı düellosu yap\n"
+            "`.halısaha @kişi` — Maç simülasyonu oyna\n"
+            "`.penaltı` — Penaltı at (butonlarla)\n"
+            "`.yazıtura` — Yazı-tura oyna\n"
+            "`.roll [sayı/seçenek]` — Rastgele seçim yap\n"
+            "`.ship @k1 @k2` — Aşk uyumunu ölç\n"
+            "`.kaçcm [@kişi]` — Boy ölçümü yap\n"
+            "`.çiz` — Oyuncu analiz grafiği oluştur"
+        )
+        await interaction.response.edit_message(embed=self.get_embed("⚽ Oyunlar", icerik))
+
     @discord.ui.button(label="💰 Piyasa & Değer", style=discord.ButtonStyle.success)
     async def piyasa(self, interaction: discord.Interaction, button: discord.ui.Button):
-        fields = {
-            ".değerver @oyuncu 5M sebep": "Oyuncunun piyasa değerini artırır.",
-            ".değersil @oyuncu 5M sebep": "Oyuncunun piyasa değerini düşürür.",
-            ".endeğerli": "En değerli 10 oyuncuyu sıralar.",
-            ".ant": "Antrenman yapar (saatlik).",
-        }
-        await interaction.response.edit_message(embed=self.get_embed("Piyasa & Değer", fields))
-    @discord.ui.button(label="📋 Sunucu", style=discord.ButtonStyle.danger)
+        icerik = (
+            "`.değerver @oyuncu 5M sebep` — Değer artır\n"
+            "`.değersil @oyuncu 5M sebep` — Değer düşür\n"
+            "`.endeğerli` — En değerli 10 oyuncu\n"
+            "`.endeğerliler` — Detaylı oyuncu sıralaması\n"
+            "`.takımdeğer` — Takımları değere göre sırala\n"
+            "`.ant` — Antrenman yap (saatlik)\n"
+            "`.stat [@kişi]` — İstatistikleri görüntüle"
+        )
+        await interaction.response.edit_message(embed=self.get_embed("💰 Piyasa & Değer", icerik))
+
+    @discord.ui.button(label="💵 Ekonomi", style=discord.ButtonStyle.success, row=1)
+    async def ekonomi(self, interaction: discord.Interaction, button: discord.ui.Button):
+        icerik = (
+            "`.para [@kişi]` — Bakiye bilgilerini gör\n"
+            "`.yatır <miktar>` — Bankaya para yatır\n"
+            "`.çek <miktar>` — Bankadan para çek\n"
+            "`.ver @kişi <miktar>` — Birinine para gönder\n"
+            "`.zenginler` — En zengin 10 kişi\n"
+            "`.para-ver @kişi <miktar>` — (Admin) Para ekle"
+        )
+        await interaction.response.edit_message(embed=self.get_embed("💵 Ekonomi", icerik))
+
+    @discord.ui.button(label="📋 Sunucu", style=discord.ButtonStyle.danger, row=1)
     async def sunucu(self, interaction: discord.Interaction, button: discord.ui.Button):
-        fields = {
-            ".kayıt @kişi <isim>": "Üye kaydı yap.",
-            ".kver @kişi": "Üyeyi kayıtsıza at.",
-            ".transfer ...": "Transfer duyurusu yap.",
-            ".ilanver ...": "Transfer listesine oyuncu ekle.",
-            ".macsaati ...": "Maç duyurusu yap.",
-            ".post <içerik>": "Instagram tarzı post at.",
-            ".takım @rol": "Takım bilgilerini gösterir.",
-            ".ara": "Takım aradığını duyur."
-        }
-        await interaction.response.edit_message(embed=self.get_embed("Sunucu", fields))
-    @discord.ui.button(label="🛠️ Araçlar", style=discord.ButtonStyle.secondary)
+        icerik = (
+            "`.kayıt @kişi <isim>` — Üye kaydı yap\n"
+            "`.kver @kişi` — Üyeyi kayıtsıza al\n"
+            "`.transfer ...` — Transfer duyurusu yap\n"
+            "`.ilanver ...` — Transfer listesine ekle\n"
+            "`.macsaati @ev @dep saat` — Maç duyurusu\n"
+            "`.post [içerik]` — Instagram tarzı post\n"
+            "`.takım @rol` — Takım bilgilerini gör\n"
+            "`.ara` — Takım aradığını duyur"
+        )
+        await interaction.response.edit_message(embed=self.get_embed("📋 Sunucu", icerik))
+
+    @discord.ui.button(label="🛠️ Araçlar", style=discord.ButtonStyle.secondary, row=1)
     async def araclar(self, interaction: discord.Interaction, button: discord.ui.Button):
-        fields = {
-            ".sil <miktar>": "Mesajları temizle.",
-            ".toplurolver @kişiler @rol": "Toplu rol ver.",
-            ".ticket-kur": "(Admin) Ticket panelini kurar.",
-            ".stat [@kişi]": "Kullanıcı istatistiklerini gösterir."
-        }
-        await interaction.response.edit_message(embed=self.get_embed("Araçlar", fields))
+        icerik = (
+            "`.sil <miktar>` — Mesajları temizle\n"
+            "`.toplurolver @kişiler @rol` — Toplu rol ver\n"
+            "`.ticket-kur` — (Admin) Ticket panelini kur\n"
+            "`.stat-sıfırla [@kişi]` — (Admin) Statları sıfırla\n"
+            "`.ping` — Bot gecikmesini kontrol et"
+        )
+        await interaction.response.edit_message(embed=self.get_embed("🛠️ Araçlar", icerik))
 
 @bot.command(name="help", aliases=["yardım"])
 async def help_menu(ctx):
     view = HelpMenu(ctx)
-    await ctx.send(embed=view.get_embed("Yardım Menüsü", {"Genel": "Aşağıdaki butonlardan bir kategori seçerek komutları inceleyebilirsin."}), view=view)
+    icerik = (
+        "Aşağıdaki butonlardan bir kategori seçerek komutları inceleyebilirsin.\n\n"
+        "⚽ **Oyunlar** — Eğlence ve mini oyunlar\n"
+        "💰 **Piyasa & Değer** — Oyuncu değeri ve sıralamalar\n"
+        "💵 **Ekonomi** — Para sistemi\n"
+        "📋 **Sunucu** — Kayıt, transfer, maç\n"
+        "🛠️ **Araçlar** — Yetkili komutları"
+    )
+    await ctx.send(embed=view.get_embed("Yardım Menüsü", icerik), view=view)
 
 # --- BOT YÖNETİMİ ---
 @bot.command(name="sunucuyakatıl")
